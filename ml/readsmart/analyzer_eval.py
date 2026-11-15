@@ -225,8 +225,13 @@ def analyze_file(cfg, run_dir, wav) -> dict:
     from . import audio as A
     from .analyzer import frame_features_for
     from .cnn14 import load_cnn14
+    from .config import checkpoint_path
     from .embed import pick_device
-    folder = Path(run_dir) / "analyzer"
+    folder = Path(run_dir)
+    if not (folder / "analyzer_card.json").exists():  # a run folder: the model is in its analyzer/ subfolder
+        folder = folder / "analyzer"
+    if not (folder / "analyzer_card.json").exists():
+        raise FileNotFoundError(f"No saved analyzer in {run_dir} (analyzer_card.json not found)")
     an = SpeechAnalyzer.load(cfg, folder)
     ac, sr = cfg["audio"], cfg["audio"]["sample_rate"]
     y = A.load_audio(wav, sr)
@@ -235,7 +240,7 @@ def analyze_file(cfg, run_dir, wav) -> dict:
         return {"quality_status": "failed", "reasons": qc.reasons, "metrics": None, "tier": None}
     y = A.preprocess(y, ac)
     device = pick_device(cfg["cnn14"]["device"])
-    cnn = load_cnn14(an.card["settings"]["cnn14_checkpoint"], cfg["spectrogram"], sr, device)
+    cnn = load_cnn14(checkpoint_path(cfg, an.card["settings"]["cnn14_checkpoint"]), cfg["spectrogram"], sr, device)
     frames = frame_features_for(cnn, y, device, sr=sr)
     m, ev = an.analyze_arrays(y, frames)
     t = assign_tier(m, criteria(cfg))

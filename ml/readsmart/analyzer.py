@@ -23,6 +23,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
 from .cnn14 import load_cnn14
+from .config import checkpoint_path
 from .data import load_processed, usable_recordings, work
 from .embed import pick_device
 from .timing import timing_measures
@@ -50,7 +51,7 @@ def frame_features_for(model, y: np.ndarray, device: str, chunk_s: float = 30.0,
 def extract_frame_features(cfg) -> None:
     device = pick_device(cfg["cnn14"]["device"])
     sr = cfg["audio"]["sample_rate"]
-    model = load_cnn14(cfg["cnn14"]["checkpoint"], cfg["spectrogram"], sr, device)
+    model = load_cnn14(checkpoint_path(cfg), cfg["spectrogram"], sr, device)
     rec = usable_recordings(cfg)
     for rid in rec.recording_id:
         np.save(work(cfg, "frames", f"{rid}.npy"), frame_features_for(model, load_processed(cfg, rid), device, sr=sr))

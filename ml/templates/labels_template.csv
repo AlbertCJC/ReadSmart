@@ -1,0 +1,5 @@
+recording_id,learner_code,audio_file,passage_id,session_id,reference_tier,labeler_id,label_version,clarity_score,fillers_marked,notes
+R0001,L0001,L0001_take1.wav,P01,S01,,,,,no,"first attempt failed quality check (too quiet); leave tier empty"
+R0002,L0001,L0001_take2.wav,P01,S01,Low,RATER01,labels_v1,[score],yes,
+R0003,L0002,L0002_take1.wav,P01,S01,Moderate,RATER01,labels_v1,[score],no,"fillers not marked for this one"
+R0004,L0003,L0003_take1.wav,P01,S02,High,RATER02,labels_v1,[score],yes,"marked: no fillers found (still yes)"

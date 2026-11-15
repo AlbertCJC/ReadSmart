@@ -1,0 +1,136 @@
+# Read Smart 2.0 training configuration
+#
+# Every value here is a PROPOSAL from the Model Training Plan (Nov 15, 2026)
+# unless marked as decided. Markers:
+#   [TO BE FILLED] needs information from the team or school
+#   [DECIDE]       a choice the team or adviser (Sir Heubert) must make
+#   [VERIFY]       a source must be checked
+#
+# mode: "practice" lets the pipeline run on practice or synthetic audio with
+#       placeholders still empty. Numbers from practice mode are NEVER reported.
+# mode: "study" refuses to run until every readiness-gate field below is filled.
+mode: practice
+
+paths:
+  raw_audio_dir: data/raw              # WAV files named in labels.csv (relative to this file)
+  labels_csv: data/labels.csv          # one row per recording; see templates/labels_template.csv
+  work_dir: work                       # processed clips, embeddings, splits (never commit)
+  runs_dir: runs                       # results, run log, model files
+  criteria_file: criteria/tier_criteria.yaml   # tier rules (Objective 4); empty until the team writes them
+
+# ---------------------------------------------------------------------------
+# Readiness gate (Training Plan, Table 1). Study mode checks these.
+# ---------------------------------------------------------------------------
+gate:
+  tier_criteria_version: null          # [TO BE FILLED] G1: version/date of the signed Low/Moderate/High criteria (Objective 4)
+  labeling_protocol_version: null      # [TO BE FILLED] G2
+  label_file_version: null             # [TO BE FILLED] frozen label file version, e.g. "labels_v1 2027-03-12"
+  target_macro_f1: null                # [TO BE FILLED] G8: agreed with the adviser BEFORE results are seen
+  min_high_recall: null                # [TO BE FILLED] G8: minimum High-tier recall for model selection
+  stack_confirmed: false               # [DECIDE] G9: Python / PyTorch / PANNs CNN14 / scikit-learn are proposals
+  storage_approved: false              # [TO BE FILLED] G10: approved secure storage and compute for learner audio
+  clarity_scale_version: null          # [TO BE FILLED] written clarity rating scale used by raters (speech analyzer)
+  filler_marking_protocol_version: null  # [TO BE FILLED] how fillers are marked (what counts as "uh"/"um", tool, who marks)
+
+# The three tiers are fixed by the thesis framing. Their CRITERIA are not
+# defined here (Objective 4); labels come from the frozen label file only.
+tiers: [Low, Moderate, High]
+
+seed: 2027
+
+# ---------------------------------------------------------------------------
+# Audio quality check and preprocessing (Training Plan, Section 3.1 and Table 3)
+# ---------------------------------------------------------------------------
+audio:
+  sample_rate: 16000                   # CNN14 16 kHz front end
+  qc:
+    min_duration_s: 10.0               # [DECIDE] practice value; set from the passage length
+    min_rms_dbfs: -45.0                # [DECIDE] practice value; "too quiet" threshold
+    max_clipped_fraction: 0.001        # [DECIDE] share of samples at full scale allowed
+  trim_top_db: 30                      # [DECIDE] silence trimming threshold; check on a few real recordings
+  target_rms_dbfs: -20.0               # loudness normalization target (proposal)
+  clip_lengths_s: [3, 5, 10]           # candidate clip lengths compared on CV folds (proposal)
+  clip_overlap: 0.25                   # fraction of overlap between clips (proposal)
+  clip_min_active_fraction: 0.5        # drop clips that are mostly silence (proposal)
+  # Clips with another voice (e.g. the teacher) cannot be detected automatically.
+  # List them by hand in data/excluded_clips.csv (recording_id, clip_index, reason).
+
+# Log-mel settings (Table 7 item 3: [DECIDE]; plan follows CNN14 16 kHz)
+spectrogram:
+  n_fft: 512                           # 32 ms window
+  hop_length: 160                      # 10 ms hop
+  n_mels: 64                           # fills SPECTROGRAM.n_mels
+  fmin: 50
+  fmax: 8000
+
+cnn14:
+  # PANNs CNN14 16 kHz checkpoint (MIT license). Download it yourself:
+  #   Cnn14_16k_mAP=0.438.pth from zenodo.org/record/3987831
+  # [VERIFY] PANNs final venue before citing (Kong et al., arXiv:1912.10211).
+  checkpoint: null                     # e.g. checkpoints/Cnn14_16k_mAP=0.438.pth ; REQUIRED in study mode
+  batch_size: 16
+  device: auto                         # auto | cpu | cuda
+
+# ---------------------------------------------------------------------------
+# Speech analyzer (one model -> speech metrics). Tier step reads paths.criteria_file.
+# ---------------------------------------------------------------------------
+timing:
+  silence_db: 25                       # [DECIDE] frame counts as silent if this many dB below the loud level; tune with timing-check
+  min_pause_s: 0.25                    # [DECIDE] shortest silence counted as a pause
+  min_dip_db: 2.0                      # syllable peak must rise this much above its dips (de Jong & Wempe, 2009 [VERIFY])
+  voiced_only: true                    # [DECIDE] count only peaks where pitch is detected; check with timing-check
+
+filler:
+  label_names: [uh, um, uhm, filler]   # Audacity label texts counted as fillers [DECIDE with the marking protocol]
+  hidden: 128
+  dropout: 0.3
+  lr: 0.001
+  epochs: 30                           # proposal
+  threshold: 0.5                       # [DECIDE] frame probability for "filler"; choose on CV, never on the test set
+  min_event_s: 0.16                    # shortest detected filler (two 80 ms frames)
+  merge_gap_s: 0.16                    # join detections closer than this
+
+clarity:
+  scale_min: null                      # [TO BE FILLED] lowest point of the rater clarity scale
+  scale_max: null                      # [TO BE FILLED] highest point
+  ridge_alphas: [0.1, 1, 10, 100, 1000]
+
+# ---------------------------------------------------------------------------
+# Augmentation: training clips only (Section 7)
+# ---------------------------------------------------------------------------
+augment:
+  enabled: true
+  pitch_shift: false                   # [DECIDE] Table 7 item 1: plan says no pitch/speed change. Not implemented on purpose.
+  speed_change: false                  # [DECIDE] Table 7 item 1
+  embedding_copies: 2                  # augmented copies per clip cached for M1-M4
+  noise_dir: null                      # [TO BE FILLED] folder of classroom-noise WAVs; if null, low-level white noise is used
+  noise_snr_db: [20, 30]               # proposal
+  gain_db: [-3, 3]                     # small volume changes (proposal)
+  specaugment: {time_masks: 2, time_width: 20, freq_masks: 2, freq_width: 8}  # Park et al., 2019
+
+# Imbalance (Table 7 item 2: [DECIDE]; plan uses class weights only, no oversampling)
+imbalance: class_weights
+
+# ---------------------------------------------------------------------------
+# Splits (Section 4)
+# ---------------------------------------------------------------------------
+split:
+  test_share: 0.2                      # [DECIDE] exact share with the adviser
+  min_test_learners_per_tier: null     # [DECIDE] with the adviser; the script warns if any tier has fewer
+  n_folds: 5                           # reduced automatically if the smallest dev tier has fewer learners (logged)
+  prediction_unit: recording           # [DECIDE] Table 7 item 4: recording | learner (same thing if each learner reads once)
+
+# ---------------------------------------------------------------------------
+# Models (Table 4). Grids from Section 6.
+# ---------------------------------------------------------------------------
+models:
+  M0: {enabled: true}                  # majority class floor
+  M1: {enabled: true, C: [0.01, 0.1, 1, 10]}   # [DECIDE] Table 7 item 5: keep or drop hand-crafted baseline
+  M2: {enabled: true, C: [0.01, 0.1, 1, 10]}   # main model: CNN14 embeddings + logistic regression
+  M3: {enabled: true, C: [0.01, 0.1, 1, 10], kernel: [linear, rbf]}
+  M4: {enabled: true, lr: [0.001, 0.0001], dropout: [0.3, 0.5], hidden: 256, max_epochs: 200, patience: 20}
+  M5: {enabled: true, lr: [0.001, 0.0001], dropout: [0.3, 0.5], max_epochs: 60, patience: 10, batch_size: 16,
+       clip_lengths_s: null}            # null = same as audio.clip_lengths_s. M5 is slow on CPU: use a GPU (Table 4)
+  # M6 (fine-tune CNN14 last block) is not implemented: run only if M2-M4 underfit
+  # and there is enough data (Table 4). Add it then.
+aggregation: [mean_embedding, mean_proba]   # clip -> recording, both compared on CV (Section 5)

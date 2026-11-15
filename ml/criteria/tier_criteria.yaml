@@ -1,0 +1,22 @@
+# Read Smart 2.0 tier criteria (Objective 4)  [TO BE FILLED by the researchers with Sir Heubert]
+#
+# Tiers are study-defined instructional prioritization categories, not clinical categories.
+# Until 'version' and 'rules' are filled, every result says "criteria not set" and gives no tier.
+# Accent alone must never move a learner to a higher tier.
+#
+# Metrics you can use (from the speech analyzer):
+#   duration_s, speaking_time_s, speaking_ratio, pause_count, pauses_per_min, total_pause_s,
+#   mean_pause_s, longest_pause_s, syllable_count, speech_rate_syl_per_s,
+#   articulation_rate_syl_per_s, filler_count, fillers_per_min, filler_time_s, clarity_score
+#
+# Format (see readsmart/tiers.py): rules are checked top to bottom, first match wins.
+#   rules:
+#     - tier: High
+#       any:
+#         - {metric: clarity_score, op: "<=", value: <number>}
+#     - tier: Moderate
+#       any: [ ... ]
+version: null
+approved_by: null
+default_tier: null
+rules: []

@@ -1,0 +1,19 @@
+# Never commit audio, embeddings, the learner key, or results with learner codes (Training Plan Section 9)
+**/data/
+**/work/
+**/runs/
+**/synthetic*/
+**/checkpoints/
+*.wav
+*.npy
+*.npz
+*.pth
+*.pt
+*.joblib
+__pycache__/
+.pytest_cache/
+.venv/
+.env
+*.mp3
+*.m4a
+*.flac

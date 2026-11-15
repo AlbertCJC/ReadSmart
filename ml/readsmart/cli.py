@@ -48,7 +48,7 @@ def main(argv=None):
     ap.add_argument("--version-label", default="v0-practice", help="MODEL_VERSION.version_label (final)")
     ap.add_argument("--models", help="comma-separated subset for cv, e.g. M0,M2")
     ap.add_argument("--cv-run", help="comma-separated CV run folders for select (default: all CV runs, latest per model)")
-    ap.add_argument("--run", help="final-test run folder for predict")
+    ap.add_argument("--run", "--model", dest="run", help="saved model: a final-test run folder, or an analyzer folder (analyze / predict)")
     ap.add_argument("--wav", help="WAV file for predict / figure")
     ap.add_argument("--double-labels", default="data/double_labels.csv")
     ap.add_argument("--labels-dir", help="folder of Audacity label .txt files (import-audacity)")

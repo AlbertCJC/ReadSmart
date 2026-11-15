@@ -14,6 +14,7 @@ import torch
 
 from .augment import WaveAugmenter
 from .cnn14 import load_cnn14, spec_mask
+from .config import checkpoint_path
 from .data import clips_for, manual_exclusions, usable_recordings, work
 
 
@@ -32,7 +33,7 @@ def _embed_batch(model, clips, device, mask_fn=None):
 def extract_embeddings(cfg) -> None:
     device = pick_device(cfg["cnn14"]["device"])
     sr = cfg["audio"]["sample_rate"]
-    model = load_cnn14(cfg["cnn14"]["checkpoint"], cfg["spectrogram"], sr, device)
+    model = load_cnn14(checkpoint_path(cfg), cfg["spectrogram"], sr, device)
     rec = usable_recordings(cfg)
     excluded = manual_exclusions(cfg)
     aug_cfg = cfg["augment"]

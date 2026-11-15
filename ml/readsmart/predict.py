@@ -10,6 +10,7 @@ import torch
 
 from . import audio as A
 from .cnn14 import load_cnn14
+from .config import checkpoint_path
 from .embed import pick_device
 from .models import HeadModel
 
@@ -29,7 +30,7 @@ def predict_file(cfg, run_dir: str | Path, wav_path: str | Path) -> dict:
     segs = A.segment(y, sr, L, ac["clip_overlap"], ac["trim_top_db"], ac["clip_min_active_fraction"])
     clips = [c for _, _, c, _, k in segs if k] or [max(segs, key=lambda s: s[3])[2]]
     device = pick_device(cfg["cnn14"]["device"])
-    cnn = load_cnn14(card["cnn14_checkpoint"], cfg["spectrogram"], sr, device)
+    cnn = load_cnn14(checkpoint_path(cfg, card["cnn14_checkpoint"]), cfg["spectrogram"], sr, device)
     with torch.no_grad():
         emb = cnn(torch.from_numpy(np.stack(clips)).to(device)).cpu().numpy()
     X = emb.mean(0, keepdims=True) if card["aggregation"] == "mean_embedding" else emb

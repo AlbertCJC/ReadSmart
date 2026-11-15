@@ -4,6 +4,7 @@
 **/runs/
 **/synthetic*/
 **/checkpoints/
+**/models/
 *.wav
 *.npy
 *.npz

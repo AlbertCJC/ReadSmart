@@ -94,3 +94,24 @@ def set_seeds(seed: int) -> None:
         torch.use_deterministic_algorithms(True, warn_only=True)
     except ImportError:
         pass
+
+
+def checkpoint_path(cfg, trained_with: str | None = None) -> str | None:
+    """CNN14 checkpoint path from config.yaml, resolved relative to the config file.
+    trained_with: the checkpoint a saved model was trained with; a different file name is refused,
+    because features from other weights would not match the saved heads."""
+    ck = cfg["cnn14"].get("checkpoint")
+    if trained_with and not ck:
+        raise FileNotFoundError("This saved model was trained with the CNN14 checkpoint "
+                                f"'{Path(trained_with).name}'. Set cnn14.checkpoint in config.yaml to that file.")
+    if not trained_with and ck is None:
+        return None
+    if ck is None:
+        return None
+    p = Path(ck)
+    p = p if p.is_absolute() else Path(cfg["_root"]) / p
+    if not p.is_file():
+        raise FileNotFoundError(f"CNN14 checkpoint not found: {p}. See the README, section 'Get the CNN14 weights'.")
+    if trained_with and Path(trained_with).name != p.name:
+        raise ValueError(f"Saved model was trained with '{Path(trained_with).name}' but config.yaml points to '{p.name}'.")
+    return str(p)
